@@ -1,0 +1,99 @@
+name: CI and DORA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint and tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test tools
+        run: python -m pip install --upgrade pip pytest
+
+      - name: Lint Markdown
+        run: npx --yes markdownlint-cli2 "**/*.md" "#.github/**"
+
+      - name: Run repository tests
+        run: python -m pytest -q
+
+  security:
+    name: Dependency and vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Scan repository with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  build:
+    name: Build and publish artifact
+    needs: [quality, security]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build project archive
+        shell: bash
+        run: |
+          mkdir -p dist
+          short_sha="${GITHUB_SHA:0:7}"
+          zip -r "dist/pelargonium-shop-${short_sha}.zip"             README.md docs tests scripts .github/workflows/ci.yml             -x "*/__pycache__/*" "*.pyc"
+
+      - name: Publish project artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pelargonium-shop-build
+          path: dist/*.zip
+          if-no-files-found: error
+
+  dora:
+    name: Build DORA dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dashboard dependency
+        run: python -m pip install matplotlib
+
+      - name: Calculate DORA metrics from GitHub API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/dora_dashboard.py             --output dist/dora_dashboard.png             --json dist/dora_metrics.json
+
+      - name: Publish DORA dashboard
+        uses: actions/upload-artifact@v4
+        with:
+          name: dora-dashboard
+          path: dist/dora_*
+          if-no-files-found: error
