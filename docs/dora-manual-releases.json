@@ -1,0 +1,23 @@
+{
+  "observation_window": {
+    "start": "2026-09-17T09:42:12Z",
+    "end": "2026-11-10T09:42:12Z",
+    "days": 54,
+    "purpose": "Fixed baseline window used in Laboratory Work 10"
+  },
+  "manual_deployments": [
+    {
+      "id": "tilda-mvp-v0.1",
+      "name": "Pelargonium Shop MVP v0.1",
+      "platform": "Tilda",
+      "environment": "production",
+      "started_at": "2026-09-16T00:00:00+05:00",
+      "deployed_at": "2026-11-04T00:00:00+05:00",
+      "status": "success",
+      "failed": false,
+      "incident": false,
+      "completed_tasks": 11,
+      "evidence": "Laboratory Work 9 control snapshot dated 2026-11-04"
+    }
+  ]
+}
